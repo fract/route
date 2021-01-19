@@ -12,11 +12,11 @@ abstract class Route<T> extends Fractal<T> {
     protected abstract getNestedFractal(matched: Cause<boolean>, match: Cause<RegExpMatchArray | null>): Fractal<T>
     private readonly regexp: RegExp
 
-    constructor(pattern: string | RegExp) {
+    constructor(pattern: string | RegExp, exact: boolean) {
         super()
 
         if (typeof pattern === 'string') {
-            pattern = new RegExp(`^${pattern}`)
+            pattern = new RegExp(`^${pattern}${exact ? '$' : ''}`)
         }
 
         this.regexp = pattern
@@ -78,8 +78,8 @@ abstract class Route<T> extends Fractal<T> {
 class FromFractalRoute<T> extends Route<T> {
     private readonly target: Fractal<T>
 
-    constructor(pattern: string | RegExp, target: Fractal<T>) {
-        super(pattern)
+    constructor(pattern: string | RegExp, target: Fractal<T>, exact: boolean) {
+        super(pattern, exact)
         this.target = target
     }
 
@@ -92,8 +92,8 @@ class FromGeneratorRoute<T> extends Route<T> {
     private readonly target: RouteGeneratorFunc<T>
     private readonly thisArg: unknown
 
-    constructor(pattern: string | RegExp, target: RouteGeneratorFunc<T>, thisArg?: unknown) {
-        super(pattern)
+    constructor(pattern: string | RegExp, target: RouteGeneratorFunc<T>, exact: boolean, thisArg?: unknown) {
+        super(pattern, exact)
         this.target = target
         this.thisArg = thisArg
     }
@@ -120,11 +120,21 @@ class FromGeneratorRoute<T> extends Route<T> {
     }
 }
 
-export function route<T>(pattern: string | RegExp, target: Fractal<T>): Route<T>
-export function route<T>(pattern: string | RegExp, target: RouteGeneratorFunc<T>, thisArg?: unknown): Route<T>
-export function route<T>(pattern: string | RegExp, target: Fractal<T> | RouteGeneratorFunc<T>, thisArg?: unknown) {
+export function route<T>(pattern: string | RegExp, target: Fractal<T>, exact?: boolean): Route<T>
+export function route<T>(
+    pattern: string | RegExp,
+    target: RouteGeneratorFunc<T>,
+    exact?: boolean,
+    thisArg?: unknown
+): Route<T>
+export function route<T>(
+    pattern: string | RegExp,
+    target: Fractal<T> | RouteGeneratorFunc<T>,
+    exact = true,
+    thisArg?: unknown
+) {
     if (target instanceof Fractal) {
-        return new FromFractalRoute(pattern, target)
+        return new FromFractalRoute(pattern, target, exact)
     }
-    return new FromGeneratorRoute(pattern, target, thisArg)
+    return new FromGeneratorRoute(pattern, target, exact, thisArg)
 }
